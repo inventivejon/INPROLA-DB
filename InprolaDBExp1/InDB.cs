@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace InprolaDBExp1
@@ -112,6 +113,80 @@ namespace InprolaDBExp1
             }
 
             return returnValue;
+        }
+
+        public bool RegisterWord(string rootPath, string newWord)
+        {
+            /* Try to get a match */
+            foreach (var singleDBType in this._allDBSources)
+            {
+                foreach (var singleSourceFolder in singleDBType.Value)
+                {
+                    if (File.Exists(singleSourceFolder + "\\" + newWord))
+                    {
+                        /* Can't readd */
+                        return false;
+                    }
+                }
+            }
+
+            /* Not in DB yet. Now try to add */
+            using (File.CreateText(rootPath + "\\" + newWord))
+            {
+
+            }
+
+            return true;
+        }
+
+        public string FindMatch(string word)
+        {
+            /* Try to get a match */
+            foreach(var singleDBType in this._allDBSources)
+            {
+                foreach(var singleSourceFolder in singleDBType.Value)
+                {
+                    if(File.Exists(singleSourceFolder + "\\" + word))
+                    {
+                        return singleDBType.Key.ToString();
+                    }
+                }
+            }
+
+            /* No match. Try to learn */
+            Console.WriteLine($"Das Wort {word} konnte nicht gefunden werden. Möchtest Du jetzt das Wort erklären?[J/N]:");
+            switch(Console.ReadLine())
+            {
+                case "J":
+                    /* First define Source Type */
+                    Console.WriteLine("Zu welcher Basisbedeutung gehört es?:");
+                    foreach (InDBSourceType singleInDBSourceType in (InDBSourceType[])Enum.GetValues(typeof(InDBSourceType)))
+                    {
+                        Console.WriteLine($"[{((int)singleInDBSourceType).ToString()}] {singleInDBSourceType.ToString()}");
+                    }
+                    var definedSourceType = (InDBSourceType)int.Parse(Console.ReadLine());
+
+                    Console.WriteLine("Zu welchem RootPath gehört das Wort?:");
+
+                    List<string> allOptions = new List<string>();
+
+                    foreach (var singleRootPath in this._allDBSources[definedSourceType].Select((x, i) => new { Value = x, Index = i }))
+                    {
+                        Console.WriteLine($"[{singleRootPath.Index}] - {singleRootPath.Value}");
+                        allOptions.Add(singleRootPath.Value);
+                    }
+
+                    string rootPath = allOptions[int.Parse(Console.ReadLine())];
+
+                    RegisterWord(rootPath, word);
+
+                    break;
+
+                default:
+                    break;
+            }
+
+            return null;
         }
     }
 }
